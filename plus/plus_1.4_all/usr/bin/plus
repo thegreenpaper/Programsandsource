@@ -1,0 +1,140 @@
+#!/bin/sh
+## Config
+usedefaults="true"
+musicfolder="$HOME/Music/plus"
+volume=70
+dmenucolor="#111c26"
+dmenufont="Jetbrains Mono"
+terminal="$TERM"
+
+## Documentation
+
+documentation="
+Playlist Formatting:
+	A playlist is a text file in the \$musicfolder which is curently $musicfolder
+	You can edit your \$musicfolder in this scripts top lines of code, just find '\$musicfolder=$musicfolder' and edit
+	To add a song to a playlist you would add a line that says anything, then you would add air quotes \"\", and inside them you would write the path to the song
+	example:
+		Song - Artist \"path/to/musicfile.mp3\"
+	The path can lead to a location on your computer or be a link to the file/youtube video on the internet
+	Any text you put outside the air quotes have no effect and are only there for you to be able to know what song it is
+	Any text in the same line and after a # will be ignored
+	example:
+		# You can write whatever I want after a '#' and it wont show up as a song
+
+Selecting A Playlist:
+	To choose a playlist you would type you preferred playlist in the second argument
+	or run 'plus cl'
+	if a playlist is not selected, all songs from all playlists will be included
+
+Useable Arguments:
+	help	Displays this prompt
+	pl	You can choose and play a song
+	cl	You can choose a playlist to choose a song from
+	pf	Plays your selected amount of random songs 
+	list	List all playlists
+	add	Adds the statment in the third argument to the selected playlist
+	*	If none of the argument above have been seleced, it will automaticly run 'plus pl'
+"
+
+
+## Program
+
+musicfile=$(
+case "$1" in
+	cl) 
+		case "$usedefaults" in
+			false) ls $musicfolder | dmenu -nb "$dmenucolor" -fn "$dmenufont" -i -p 'Choose playlist' | sed "s|^|$musicfolder/|" ;;
+			true) ls $musicfolder | dmenu -i -p 'Choose playlist' | sed "s|^|$musicfolder/|"
+		esac ;;
+	*)
+		case "$2" in
+			[a-zA-Z0-9_.-][a-zA-Z0-9_.-]*) echo "$musicfolder/$2" ;;
+			*) echo $(ls $musicfolder | sed "s|^|$musicfolder/|" | tr "\n" " ") ;;
+		esac
+esac
+)
+
+case "$1" in
+
+	# Play for:
+	pf)
+		countin="false"
+		count="yes" 
+		# This case statement does nothing right now but will be usefull in the future
+		case "$3" in
+			[0-9][0-9]*) count="no" ; amount=$3;;
+			*)	
+				case "$usedefaults" in
+					false) amount=$(echo "" | dmenu -nb "$dmenucolor" -fn "$dmenufont" -i -p 'How many times') && countin="true" ;;
+					true) amount=$(echo "" | dmenu -i -p 'How many times') && countin="true"
+				esac ;;
+		esac
+		case "$countin" in
+			true)
+				for i in $(seq 1 $amount | tr "\n" " ")
+				do
+					song=$(cat $musicfile | grep -o '\".*\"' | sed 's|"||g' | uniq | shuf -n 1)
+					echo "Playing: \"$song\" in \"$terminal\""
+					mpv --volume=$volume --no-video "$song" 
+				done
+		esac 
+		;;
+
+	# List musicfolder:
+	list) ls $musicfolder ;;
+
+	# List runnable commands 
+	help) echo "$documentation" ;;
+
+	add) 
+		case "$2" in
+                        [a-zA-Z0-9_.-][a-zA-Z0-9_.-]*)
+				case "$3" in
+					[a-zA-Z0-9_.-][a-zA-Z0-9_.-]*) echo "$3" >> $musicfolder/$2 ;;
+					*) echo "Failed: please input the line to add in the third argument (\$3)" ;;
+				esac ;;
+                        *) echo "failed" ;;
+                esac ;;
+
+	# Run normaly:
+	*)
+		case "$usedefaults" in
+        		false)
+        		        chosevolume () {
+                        		case "$continue" in
+                        		        true) echo "70\n100\n90\n80\n60\n50\n40\n30\n20\n10\n1" | dmenu -nb "$dmenucolor" -fn "$dmenufont" -i -l 10 -p 'Choose volume' ;;
+                    			esac
+                		};;
+        		true)
+                		chosevolume () {
+                        		case "$continue" in
+                                		true) echo "70\n100\n90\n80\n60\n50\n40\n30\n20\n10\n1" | dmenu -i -l 10 -p 'choose volume' ;;
+                        		esac
+                		}
+		esac
+		case "$usedefaults" in
+        		false)
+                		voa=$(echo "Audio\nVideo+Audio\nAudio+VolumeControl\nAudio+Terminal" | dmenu -nb "$dmenucolor" -fn "$dmenufont" -i -p 'Choose Format') &&
+                		choice=$(cat $musicfile | uniq | shuf | sed 's|#.*$||' | sed -r '/^\s*$/d' | dmenu -nb "$dmenucolor" -fn "$dmenufont" -l 10 -i -p 'Choose Song:') && continue="true"
+                		song=$(echo "$choice" | grep -o '\".*\"' | sed 's|"||g')
+                		echo "Playing: \"$song\" in \"$terminal\""
+                		case "$voa" in
+                                	Audio) mpv --volume=$volume --no-video "$song" ;;
+                                	Video+Audio) mpv --volume=$volume "$song" ;;
+                                	Audio+VolumeControl) mpv --volume=$(chosevolume) --no-video "$song" ;;
+                                	Audio+Terminal) echo "--volume=$volume --no-video $song" | xargs $terminal -e mpv
+                		esac ;;
+        		true)
+          			voa=$(echo "Audio\nVideo+Audio\nAudio+VolumeControl\nAudio+Terminal" | dmenu -i -p 'Choose Format') &&
+          			choice=$(cat $musicfile | uniq | shuf | sed 's|#.*$||' | sed -r '/^\s*$/d' | dmenu -l 10 -i -p 'Choose Song:') && continue="true"
+          			song=$(echo "$choice" | grep -o '\".*\"' | sed 's|"||g')
+          			echo "Playing: \"$song\" in \"$terminal\""
+          			case "$voa" in
+                  			Audio) mpv --volume=$volume --no-video "$song" ;;
+                  			Video+Audio) mpv --volume=$volume "$song" ;;
+                  			Audio+VolumeControl) mpv --volume=$(chosevolume) --no-video "$song" ;;
+                  			Audio+Terminal) echo "--volume=$volume --no-video $song" | xargs $terminal -e mpv
+          		esac
+		esac ;;
+esac
