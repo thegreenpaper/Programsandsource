@@ -1,8 +1,0 @@
-Package: plus
-Version: 1.4
-Architecture: all
-Essential: no
-Priority: optional
-Depends: dmenu,mpv,dash
-Maintainer: Jørgen Andreas Bratland Bull
-Description: A music managment program for mpv.
