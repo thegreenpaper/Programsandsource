@@ -2,7 +2,7 @@
 from tkinter import *
 
 root = Tk()
-root.title("Simple Calculator")
+root.title("calc")
 e = Entry(root, width=25, borderwidth=5)
 e.grid(row=0, column=0, columnspan=4, padx=10, pady=10)
 #e.insert(0, "Enter your name:")
